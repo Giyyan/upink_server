@@ -1,5 +1,5 @@
 [options]
-addons_path = /home/andrey/projects/upink_project/base_modules,/home/andrey/projects/upink_project/upink_modules
+addons_path = /home/giyyan/projects/upink_project/base_modules,/home/giyyan/projects/upink_project/upink_modules
 admin_passwd = admin
 assert_exit_level = error
 cache_timeout = 100000

@@ -27,5 +27,7 @@ wsgiref
 xlwt
 numpy
 python-relatorio
+odt2sphinx
+rst2pdf
 http://download.gna.org/pychart/PyChart-1.39.tar.gz
 http://cheeseshop.python.org/packages/source/p/pyparsing/pyparsing-1.5.5.tar.gz
