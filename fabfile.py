@@ -18,4 +18,4 @@ def setup(env_path="/home/giyyan/.envs/erp61", project_path="/home/giyyan/projec
 
     with fabtools.python.virtualenv(env_path):
         pass
-        #fabtools.python.install_requirements('{}/requirements/local.txt'.format(project_path,))
+        #fabtools.python.install_requirements('{}/requiresents/local.txt'.format(project_path,))s

@@ -26,7 +26,7 @@ vobject
 wsgiref
 xlwt
 numpy
-python-relatorio
+relatorio
 odt2sphinx
 rst2pdf
 http://download.gna.org/pychart/PyChart-1.39.tar.gz
