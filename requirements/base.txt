@@ -18,6 +18,7 @@ python-dateutil
 python-ldap
 python-openid
 pytils
+psutil
 pytz
 reportlab
 simplejson
