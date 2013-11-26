@@ -6,7 +6,7 @@ MySQL-python
 Pillow
 PyWebDAV
 PyYAML
-Werkzeug
+Werkzeug==0.8.3
 argparse
 feedparser
 gdata
