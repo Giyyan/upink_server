@@ -38,6 +38,7 @@
 __metaclass__ = type
 
 import re
+
 try:
     # requires python 2.5+
     from hashlib import md5
@@ -47,14 +48,15 @@ except ImportError:
 import time
 import urllib
 import zipfile
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
 from copy import copy, deepcopy
 
-
 import warnings
+
 warnings.filterwarnings('always', module='aeroolib.plugins.opendocument')
 
 import lxml.etree
@@ -65,7 +67,6 @@ from genshi.filters import Transformer
 from genshi.filters.transform import ENTER, EXIT
 from genshi.core import Stream
 from genshi.template.interpolation import PREFIX
-
 
 from aeroolib.plugins.base import AerooStream
 from aeroolib.reporting import Report, MIMETemplateLoader
@@ -85,7 +86,7 @@ EXTENSIONS = {'image/png': 'png',
               'image/gif': 'gif',
               'image/tiff': 'tif',
               'image/xbm': 'xbm',
-             }
+}
 
 AEROO_URI = 'http://alistek.com/'
 GENSHI_URI = 'http://genshi.edgewall.org/'
@@ -137,7 +138,7 @@ class ImageHref:
             bitstream = bitstream(**self.context).render()
         bitstream.seek(0)
         file_content = bitstream.read()
-        if len(file_content)>0:
+        if len(file_content) > 0:
             name = md5(file_content).hexdigest()
             path = 'Pictures/%s.%s' % (name, EXTENSIONS[mimetype])
             if path not in self.zip.namelist():
@@ -158,10 +159,12 @@ class ImageHref:
         else:
             return {}
 
+
 class ColumnCounter:
     """A class used to count the actual maximum number of cells (and thus
     columns) a table contains accross its rows.
     """
+
     def __init__(self):
         self.temp_counters = {}
         self.counters = {}
@@ -193,7 +196,7 @@ def wrap_nodes_between(first, last, new_parent):
     for node in first.itersiblings():
         if node is last:
             break
-        # appending a node to a new parent also
+            # appending a node to a new parent also
         # remove it from its previous parent
         new_parent.append(node)
     old_parent.replace(first, new_parent)
@@ -211,19 +214,20 @@ def update_py_attrs(node, value):
         node.attrib[py_attrs_attr] = value
     else:
         node.attrib[py_attrs_attr] = \
-                "(lambda x, y: x.update(y) or x)(%s or {}, %s or {})" % \
-                (node.attrib[py_attrs_attr], value)
+            "(lambda x, y: x.update(y) or x)(%s or {}, %s or {})" % \
+            (node.attrib[py_attrs_attr], value)
+
 
 def _filter(val):
-    if type(val)==bool:
+    if type(val) == bool:
         return ''
     elif isinstance(val, (str, unicode)):
         return val.replace('\t', TAB).replace('\n', NEW_LINE).replace('\r\n', NEW_LINE)
     else:
         return val
 
-class Template(MarkupTemplate):
 
+class Template(MarkupTemplate):
     def __init__(self, source, serializer, filepath=None, styles=None, filename=None, loader=None,
                  encoding=None, lookup='strict', allow_exec=True):
         self.namespaces = {}
@@ -315,10 +319,11 @@ class Template(MarkupTemplate):
             span.append(text_a)
 
     def _aeroo_statements(self, tree):
-        def check_except_directive( expr):
+        def check_except_directive(expr):
             if GENSHI_EXPR.match(expr).groups()[1] is not None:
                 return False
             return True
+
         "finds the aeroo statements (text:a/text:placeholder)"
         # If this node href matches the aeroo URL it is kept.
         # If this node href matches a genshi directive it is kept for further
@@ -341,20 +346,23 @@ class Template(MarkupTemplate):
                 expr = check_except_directive(expr) and "__filter(%s)" % statement.text[1:-1] or expr
             elif statement.tag == text_input:
                 expr = statement.attrib["{%s}description" % self.namespaces['text']][1:-1]
-                if expr=='_()':
+                if expr == '_()':
                     expr = "_('%s')" % statement.text
                     expr = check_except_directive(expr) and "__filter(%s)" % expr
                 else:
-                    expr = check_except_directive(expr) and "__filter(%s)" % statement.attrib["{%s}description" % self.namespaces['text']][1:-1] or expr
+                    expr = check_except_directive(expr) and "__filter(%s)" % statement.attrib[
+                                                                                 "{%s}description" % self.namespaces[
+                                                                                     'text']][1:-1] or expr
             elif statement.tag == text_a:
                 expr = urllib.unquote(statement.attrib[xlink_href_attrib][9:])
-                expr = check_except_directive(expr) and "__filter(%s)" % urllib.unquote(statement.attrib[xlink_href_attrib][9:]) or expr
+                expr = check_except_directive(expr) and "__filter(%s)" % urllib.unquote(
+                    statement.attrib[xlink_href_attrib][9:]) or expr
 
             if not expr:
                 raise OOTemplateError("No expression in the tag",
                                       self.filepath)
             closing, directive, attr, attr_val = \
-                    GENSHI_EXPR.match(expr).groups()
+                GENSHI_EXPR.match(expr).groups()
             is_opening = closing != '/'
 
             if directive is not None:
@@ -363,11 +371,11 @@ class Template(MarkupTemplate):
                     opened_tags.append(statement)
                 else:
                     closing_tags[id(opened_tags.pop())] = statement
-            # - we only need to return opening statements
+                # - we only need to return opening statements
             if is_opening:
                 r_statements.append((statement,
                                      (expr, directive, attr, attr_val))
-                                   )
+                )
         assert not opened_tags
         return r_statements, closing_tags
 
@@ -416,7 +424,7 @@ class Template(MarkupTemplate):
                         pass
                     o_ancestors.append(node)
                 assert ancestor is not None, \
-                       "No common ancestor found for opening and closing tag"
+                    "No common ancestor found for opening and closing tag"
 
                 outermost_o_ancestor = o_ancestors[-1]
                 outermost_c_ancestor = c_ancestors[-1]
@@ -445,12 +453,12 @@ class Template(MarkupTemplate):
                 # - we delete the closing statement (and its ancestors)
 
                 ######## This is need for removing only closing genshi tag except other children tags of <p> tag ########
-                if len(outermost_c_ancestor)>1 and closing in outermost_c_ancestor.getchildren():
+                if len(outermost_c_ancestor) > 1 and closing in outermost_c_ancestor.getchildren():
                     outermost_c_ancestor_copy = deepcopy(outermost_c_ancestor)
                     outermost_c_ancestor.remove(closing)
                     outermost_c_ancestor.getparent().append(outermost_c_ancestor_copy)
                     outermost_c_ancestor = outermost_c_ancestor_copy
-                #########################################################################################################
+                    #########################################################################################################
                 wrap_nodes_between(outermost_o_ancestor, outermost_c_ancestor, genshi_node)
             else:
                 # It's not a genshi statement it's a python expression
@@ -475,7 +483,7 @@ class Template(MarkupTemplate):
 
         # table node (it is not necessarily the direct parent of ancestor)
         table_node = ancestor.iterancestors('{%s}table' % table_namespace) \
-                             .next()
+            .next()
         table_name = table_node.attrib['{%s}name' % table_namespace]
 
         # add counting instructions
@@ -494,7 +502,7 @@ class Template(MarkupTemplate):
         enclosed_cell = outer_o_node.getnext()
         assert enclosed_cell.tag == '{%s}table-cell' % table_namespace
         update_py_attrs(enclosed_cell, "__aeroo_inc_col_count(%d)" %
-                loop_id)
+                                       loop_id)
 
         # 3) add "store count" code as a py:replace node, as the
         #    last child of the row
@@ -518,7 +526,7 @@ class Template(MarkupTemplate):
 
         # check whether or not the opening tag spans several rows
         a_val = self._handle_row_spanned_column_loops(
-                    statement, outer_o_node, opening_pos, closing_pos)
+            statement, outer_o_node, opening_pos, closing_pos)
 
         # check if this table's headers were already processed
         repeat_node = table_node.find(repeat_tag)
@@ -545,7 +553,7 @@ class Template(MarkupTemplate):
                 oldidx = idx
                 idx += inc
                 if oldidx < opening_pos < idx or \
-                   oldidx < closing_pos < idx:
+                                        oldidx < closing_pos < idx:
                     to_split.append(tag)
 
             # split tags
@@ -553,7 +561,7 @@ class Template(MarkupTemplate):
                 tag_pos = table_node.index(tag)
                 num = int(tag.attrib.pop(table_num_col_attr))
                 new_tags = [deepcopy(tag) for _ in range(num)]
-                table_node[tag_pos:tag_pos+1] = new_tags
+                table_node[tag_pos:tag_pos + 1] = new_tags
 
             # recompute the list of column headers as it could
             # have changed.
@@ -567,9 +575,9 @@ class Template(MarkupTemplate):
             # add a <aeroo:repeat> node around the column
             # definitions nodes
             attribs = {
-               "opening": str(opening_pos),
-               "closing": str(closing_pos),
-               "table": table_name
+                "opening": str(opening_pos),
+                "closing": str(closing_pos),
+                "table": table_name
             }
             repeat_node = EtreeElement(repeat_tag, attrib=attribs,
                                        nsmap={'aeroo': AEROO_URI})
@@ -617,7 +625,7 @@ class Template(MarkupTemplate):
         rows_to_wrap = [row_node]
         assert row_node.tag == table_row_tag
         next_rows = row_node.itersiblings(table_row_tag)
-        for row_idx in range(rows_spanned-1):
+        for row_idx in range(rows_spanned - 1):
             next_row_node = next_rows.next()
             rows_to_wrap.append(next_row_node)
             # compute the start and end nodes
@@ -661,8 +669,7 @@ class Template(MarkupTemplate):
     def _handle_innerdocs(self, tree):
         "finds inner_docs and adds them to the processing stack."
         href_attrib = '{%s}href' % self.namespaces['xlink']
-        xpath_expr = "//draw:object[starts-with(@xlink:href, './')" \
-                     "and @xlink:show='embed']"
+        xpath_expr = "//draw:object[starts-with(@xlink:href, './') and @xlink:show='embed']"
         for draw in tree.xpath(xpath_expr, namespaces=self.namespaces):
             self.inner_docs.append(draw.attrib[href_attrib][2:])
 
@@ -671,8 +678,8 @@ class Template(MarkupTemplate):
         for element in tree.iter():
             for attrs in element.keys():
                 if not attrs.startswith('{%s}' % GENSHI_URI):
-                    element.attrib[attrs] = element.attrib[attrs]\
-                            .replace(PREFIX, PREFIX * 2)
+                    element.attrib[attrs] = element.attrib[attrs] \
+                        .replace(PREFIX, PREFIX * 2)
             if element.text:
                 element.text = element.text.replace(PREFIX, PREFIX * 2)
 
@@ -734,13 +741,14 @@ class DuplicateColumnHeaders(object):
 
 
 class Manifest(object):
-
     def __init__(self, content):
         self.tree = lxml.etree.parse(StringIO(content))
         self.root = self.tree.getroot()
         self.namespaces = self.root.nsmap
-        for el in filter(lambda child: child.tag=="{%s}file-entry" % self.namespaces['manifest'], self.root.iterchildren()):
-            if filter(lambda a: a[0]=='{%s}full-path' % self.namespaces['manifest'] and a[1].startswith("Thumbnails"), el.items()):
+        for el in filter(lambda child: child.tag == "{%s}file-entry" % self.namespaces['manifest'],
+                         self.root.iterchildren()):
+            if filter(lambda a: a[0] == '{%s}full-path' % self.namespaces['manifest'] and a[1].startswith("Thumbnails"),
+                      el.items()):
                 self.root.remove(el)
 
     def __str__(self):
@@ -759,7 +767,6 @@ class Manifest(object):
 
 
 class Meta(object):
-
     def __init__(self, content):
         self.tree = lxml.etree.parse(StringIO(content))
         self.root = self.tree.getroot()
@@ -774,9 +781,9 @@ class Meta(object):
 
     def add_entry(self, tag_name, namespace, data=None, attribs={}):
         meta_namespace = self.namespaces['meta']
-        entry_node = self.meta_root.find('{%s}%s' % (self.namespaces[namespace],tag_name))
+        entry_node = self.meta_root.find('{%s}%s' % (self.namespaces[namespace], tag_name))
         if entry_node is None:
-            entry_node = EtreeElement('{%s}%s' % (self.namespaces[namespace],tag_name),
+            entry_node = EtreeElement('{%s}%s' % (self.namespaces[namespace], tag_name),
                                       nsmap={'meta': meta_namespace},
                                       attrib=attribs)
             self.meta_root.append(entry_node)
@@ -786,16 +793,16 @@ class Meta(object):
 
     def add_property(self, data=None, ptype=''):
         meta_namespace = self.namespaces['meta']
-        entry_node = EtreeElement('{%s}%s' % (self.namespaces['meta'],'user-defined'),
+        entry_node = EtreeElement('{%s}%s' % (self.namespaces['meta'], 'user-defined'),
                                   nsmap={'meta': meta_namespace},
-                                  attrib={'{%s}name' % self.namespaces['meta']:ptype})
+                                  attrib={'{%s}name' % self.namespaces['meta']: ptype})
         self.meta_root.append(entry_node)
         entry_node.text = data
 
-class TStyle(object):
 
+class TStyle(object):
     def __init__(self, content):
-        self.tree = lxml.etree.parse(StringIO(content))
+        self.tree = lxml.etree.parse(StringIO(content.encode('utf-8')))
         self.root = self.tree.getroot()
         self.namespaces = self.root.nsmap
 
@@ -803,10 +810,10 @@ class TStyle(object):
         return lxml.etree.tostring(self.tree, encoding='UTF-8',
                                    xml_declaration=True)
 
-class TContent(object):
 
+class TContent(object):
     def __init__(self, content):
-        self.tree = lxml.etree.parse(StringIO(content))
+        self.tree = lxml.etree.parse(StringIO(content.encode('utf-8')))
         self.root = self.tree.getroot()
         self.namespaces = self.root.nsmap
         ns = lxml.etree.FunctionNamespace(None)
@@ -817,7 +824,6 @@ class TContent(object):
 
 
 class OOSerializer:
-
     def __init__(self, oo_template, oo_styles=None):
         self.template = oo_template
         self.inzip = zipfile.ZipFile(self.template)
@@ -830,27 +836,25 @@ class OOSerializer:
         self.new_oo = None
         self.xml_serializer = genshi.output.XMLSerializer()
 
-
-
     def check_tabs(self, tree, namespaces):
         tags = tree.xpath("//text:*/text()[contains(string(), '%s')]/.." % TAB, namespaces=namespaces)
         for tag in tags:
             children = tag.getchildren()
             if tag.text:
-                tabs_text=tag.text.split(TAB)
-                tag.text=tabs_text.pop(0)
+                tabs_text = tag.text.split(TAB)
+                tag.text = tabs_text.pop(0)
                 pos = 0
                 for text in tabs_text:
                     new_node = EtreeElement('{%s}tab' % namespaces['text'],
-                                        attrib={},
-                                        nsmap=namespaces)
-                    new_node.tail=text
-                    tag.insert(pos,new_node)
+                                            attrib={},
+                                            nsmap=namespaces)
+                    new_node.tail = text
+                    tag.insert(pos, new_node)
                     pos += 1
             else:
                 new_node = EtreeElement('{%s}tab' % namespaces['text'],
-                    attrib=tag.attrib,
-                    nsmap=namespaces)
+                                        attrib=tag.attrib,
+                                        nsmap=namespaces)
                 tag.addnext(new_node)
             for child in tag.iterchildren():
                 if not child.tail:
@@ -858,11 +862,11 @@ class OOSerializer:
                 child_tail = child.tail
                 child.tail = ''
                 tail_text = child_tail.split(TAB)
-                n = len(tail_text)-1
+                n = len(tail_text) - 1
                 while n:
                     new_node = EtreeElement('{%s}tab' % namespaces['text'],
-                                attrib={},
-                                nsmap=namespaces)
+                                            attrib={},
+                                            nsmap=namespaces)
                     child.addnext(new_node)
                     n -= 1
                 child.tail = tail_text.pop(0)
@@ -871,26 +875,26 @@ class OOSerializer:
                     last_node.tail = text
                     last_node = last_node.getnext()
 
-
     def check_spaces(self, tree, namespaces):
-        tags = tree.xpath("//text:*[starts-with(text(), ' ') or substring(name(),string-length(name())-1)=' ']", namespaces=namespaces)
+        tags = tree.xpath("//text:*[starts-with(text(), ' ') or substring(name(),string-length(name())-1)=' ']",
+                          namespaces=namespaces)
         for tag in tags:
             children = tag.getchildren()
             if tag.text:
-                tabs_text=tag.text.split(' ')
-                tag.text=tabs_text.pop(0)
+                tabs_text = tag.text.split(' ')
+                tag.text = tabs_text.pop(0)
                 pos = 0
                 for text in tabs_text:
                     new_node = EtreeElement('{%s}s' % namespaces['text'],
-                                        attrib={},
-                                        nsmap=namespaces)
-                    new_node.tail=text
-                    tag.insert(pos,new_node)
+                                            attrib={},
+                                            nsmap=namespaces)
+                    new_node.tail = text
+                    tag.insert(pos, new_node)
                     pos += 1
             else:
                 new_node = EtreeElement('{%s}s' % namespaces['text'],
-                    attrib=tag.attrib,
-                    nsmap=namespaces)
+                                        attrib=tag.attrib,
+                                        nsmap=namespaces)
                 tag.addnext(new_node)
             for child in tag.iterchildren():
                 if not child.tail:
@@ -898,11 +902,11 @@ class OOSerializer:
                 child_tail = child.tail
                 child.tail = ''
                 tail_text = child_tail.split(' ')
-                n = len(tail_text)-1
+                n = len(tail_text) - 1
                 while n:
                     new_node = EtreeElement('{%s}s' % namespaces['text'],
-                                attrib={},
-                                nsmap=namespaces)
+                                            attrib={},
+                                            nsmap=namespaces)
                     child.addnext(new_node)
                     n -= 1
                 child.tail = tail_text.pop(0)
@@ -916,7 +920,7 @@ class OOSerializer:
         #tags = tree.xpath("//text:*[text()[contains(., '%s')]]" % NEW_LINE, namespaces=namespaces)
         span_tags = tree.xpath("//text:span[text()[contains(., '%s')]]" % NEW_LINE, namespaces=namespaces)
         for tag in span_tags:
-            if tag.tag=='{%s}span' % namespaces['text']:
+            if tag.tag == '{%s}span' % namespaces['text']:
                 span_texts = tag.text.split(NEW_LINE)
                 parent = tag.getparent()
                 parent_attrib = parent.attrib
@@ -924,33 +928,33 @@ class OOSerializer:
                 parent_itertext = parent.itertext()
                 parent_text = parent.text
                 parent_tail = parent.tail
-                
+
                 new_parent_node = EtreeElement('%s' % parent.tag,
-                                    attrib=parent_attrib,
-                                    nsmap=namespaces)
+                                               attrib=parent_attrib,
+                                               nsmap=namespaces)
                 parent.getparent().replace(parent, new_parent_node)
                 new_parent_node.text = parent_text
                 new_parent_node.tail = parent_tail
                 next_child = new_parent_node
                 try:
-                    while(True):
+                    while (True):
                         curr_child = parent_children.next()
-                        if curr_child.tag=='{%s}span' % namespaces['text']:
+                        if curr_child.tag == '{%s}span' % namespaces['text']:
                             new_span_node = EtreeElement('{%s}span' % namespaces['text'],
-                                                attrib=tag.attrib,
-                                                nsmap=namespaces)
+                                                         attrib=tag.attrib,
+                                                         nsmap=namespaces)
                             new_span_node.text = span_texts.pop(0)
                             next_child.append(new_span_node)
 
                             curr_child = next_child
                             for text in span_texts:
                                 new_node = EtreeElement('%s' % parent.tag,
-                                                    attrib=parent_attrib,
-                                                    nsmap=namespaces)
+                                                        attrib=parent_attrib,
+                                                        nsmap=namespaces)
                                 new_span_node = EtreeElement('{%s}span' % namespaces['text'],
-                                                    attrib=tag.attrib,
-                                                    nsmap=namespaces)
-                                new_span_node.text=text
+                                                             attrib=tag.attrib,
+                                                             nsmap=namespaces)
+                                new_span_node.text = text
                                 new_node.append(new_span_node)
                                 curr_child.addnext(new_node)
                                 curr_child = new_node
@@ -962,18 +966,18 @@ class OOSerializer:
 
                 try:
                     next_text = True
-                    while(next_text):
+                    while next_text:
                         next_child = parent_children.next()
                         curr_child.append(next_child)
                         next_text = next_child.text
-                    while(True):
+                    while True:
                         next_child = parent_children.next()
                         if not next_child.text:
                             curr_child.append(next_child)
                         else:
                             new_node = EtreeElement('%s' % parent.tag,
-                                                attrib=parent_attrib,
-                                                nsmap=namespaces)
+                                                    attrib=parent_attrib,
+                                                    nsmap=namespaces)
                             new_node.append(next_child)
                             curr_child.addnext(new_node)
                             curr_child = new_node
@@ -982,9 +986,9 @@ class OOSerializer:
                             next_child.tail = next_child_texts.pop(0)
                             for next_text in next_child_texts:
                                 new_node = EtreeElement('%s' % parent.tag,
-                                            attrib=parent_attrib,
-                                            nsmap=namespaces)
-                                new_node.text=next_text
+                                                        attrib=parent_attrib,
+                                                        nsmap=namespaces)
+                                new_node.text = next_text
                                 curr_child.addnext(new_node)
                                 curr_child = new_node
                 except StopIteration:
@@ -996,23 +1000,23 @@ class OOSerializer:
             if tag.text:
                 for text in tag.text.split(NEW_LINE):
                     new_node = EtreeElement('%s' % tag.tag,
-                                        attrib=tag.attrib,
-                                        nsmap=namespaces)
-                    new_node.text=text
+                                            attrib=tag.attrib,
+                                            nsmap=namespaces)
+                    new_node.text = text
                     tag.addprevious(new_node)
-                last_node=new_node
+                last_node = new_node
             else:
                 new_node = EtreeElement('%s' % tag.tag,
-                    attrib=tag.attrib,
-                    nsmap=namespaces)
+                                        attrib=tag.attrib,
+                                        nsmap=namespaces)
                 last_node = new_node
                 tag.addnext(new_node)
             if children:
                 for child in children:
                     if tag.text and tag.text.endswith(NEW_LINE):
                         new_node = EtreeElement('%s' % tag.tag,
-                                        attrib=tag.attrib,
-                                        nsmap=namespaces)
+                                                attrib=tag.attrib,
+                                                nsmap=namespaces)
                         new_node.append(child)
                         last_node.addnext(new_node)
                         last_node = new_node
@@ -1030,9 +1034,9 @@ class OOSerializer:
                         last_child.tail = tail_text.pop(0)
                     for text in tail_text:
                         new_node = EtreeElement('%s' % tag.tag,
-                                    attrib=tag.attrib,
-                                    nsmap=namespaces)
-                        new_node.text=text
+                                                attrib=tag.attrib,
+                                                nsmap=namespaces)
+                        new_node.text = text
                         last_node.addnext(new_node)
                         last_node = new_node
             if tag.text:
@@ -1041,14 +1045,15 @@ class OOSerializer:
     def check_guess_type(self, tree, namespaces):
         tags = tree.xpath('//table:table-cell[@guess_type]', namespaces=namespaces)
         for tag in tags:
-            if len(tag)==0 or len(tag)>1 or tag[0].getchildren():
+            #if len(tag)==0 or len(tag)>1 or tag[0].getchildren():
+            if tag[0].getchildren():
                 guess_type = 'string'
             else:
                 try:
                     float(tag[0].text)
                     guess_type = 'float'
                     tag.attrib['{%s}value' % namespaces['office']] = tag[0].text
-                except (ValueError,TypeError):
+                except (ValueError, TypeError):
                     guess_type = 'string'
             tag.attrib['{%s}value-type' % namespaces['office']] = guess_type
             del tag.attrib['guess_type']
@@ -1060,11 +1065,9 @@ class OOSerializer:
             width = tag.attrib['{%s}width' % namespaces['svg']]
             del tag.attrib['{%s}height' % namespaces['svg']]
             del tag.attrib['{%s}width' % namespaces['svg']]
-            
-            tag.getparent().attrib.update({'{%s}height' % namespaces['svg']:height,
-                                           '{%s}width' % namespaces['svg']:width})
 
-
+            tag.getparent().attrib.update({'{%s}height' % namespaces['svg']: height,
+                                           '{%s}width' % namespaces['svg']: width})
 
     def apply_style(self, oo_styles):
         if oo_styles:
@@ -1074,33 +1077,40 @@ class OOSerializer:
             self.styles = TStyle(self.inzip.read(STYLES))
             ##### font-face #####
             font_face_new = self.styles_new.root.xpath('//office:font-face-decls/style:font-face', \
-                                                namespaces=self.styles_new.namespaces)
+                                                       namespaces=self.styles_new.namespaces)
             font_face_orig = self.styles.root.xpath('//office:font-face-decls/style:font-face', \
-                                                namespaces=self.styles.namespaces)
+                                                    namespaces=self.styles.namespaces)
             self._replace_style_by_attrib(font_face_new, font_face_orig, 'name', self.styles.namespaces['style'])
             ###### styles ######
             new_styles = self.styles_new.root.xpath('//office:styles/style:style', \
-                                                namespaces=self.styles_new.namespaces)
+                                                    namespaces=self.styles_new.namespaces)
             orig_styles = self.styles.root.xpath('//office:styles/style:style', \
-                                                namespaces=self.styles.namespaces)
+                                                 namespaces=self.styles.namespaces)
             self._replace_style_by_attrib(new_styles, orig_styles, 'name', self.styles.namespaces['style'])
             ##### master-styles #####
-            new_master_page_styles = self.styles_new.root.xpath('//office:master-styles/style:master-page', namespaces=self.styles_new.namespaces)#[0]
-            orig_master_page_styles = self.styles.root.xpath('//office:master-styles/style:master-page', namespaces=self.styles.namespaces)#[0]
-            self._replace_style_by_attrib(new_master_page_styles, orig_master_page_styles, 'name', self.styles.namespaces['style'])
+            new_master_page_styles = self.styles_new.root.xpath('//office:master-styles/style:master-page',
+                                                                namespaces=self.styles_new.namespaces)#[0]
+            orig_master_page_styles = self.styles.root.xpath('//office:master-styles/style:master-page',
+                                                             namespaces=self.styles.namespaces)#[0]
+            self._replace_style_by_attrib(new_master_page_styles, orig_master_page_styles, 'name',
+                                          self.styles.namespaces['style'])
             ##### automatic-styles #####
-            new_automatic_page_styles = self.styles_new.root.xpath('//office:automatic-styles/style:style', namespaces=self.styles_new.namespaces)#[0]
-            orig_automatic_page_styles = self.styles.root.xpath('//office:automatic-styles/style:style', namespaces=self.styles.namespaces)#[0]
+            new_automatic_page_styles = self.styles_new.root.xpath('//office:automatic-styles/style:style',
+                                                                   namespaces=self.styles_new.namespaces)#[0]
+            orig_automatic_page_styles = self.styles.root.xpath('//office:automatic-styles/style:style',
+                                                                namespaces=self.styles.namespaces)#[0]
             if orig_automatic_page_styles:
-                self._replace_style_by_attrib(new_automatic_page_styles, orig_automatic_page_styles, 'name', self.styles.namespaces['style'])
+                self._replace_style_by_attrib(new_automatic_page_styles, orig_automatic_page_styles, 'name',
+                                              self.styles.namespaces['style'])
             else:
-                dest_node = self.styles.root.xpath('//office:automatic-styles', namespaces=self.styles_new.namespaces)[0]
+                dest_node = self.styles.root.xpath('//office:automatic-styles', namespaces=self.styles_new.namespaces)[
+                    0]
                 self._add_styles(new_automatic_page_styles, dest_node)
 
             new_page_layout = self.styles_new.root.xpath('//office:automatic-styles/style:page-layout', \
-                                                namespaces=self.styles_new.namespaces)
+                                                         namespaces=self.styles_new.namespaces)
             orig_page_layout = self.styles.root.xpath('//office:automatic-styles/style:page-layout', \
-                                                namespaces=self.styles.namespaces)
+                                                      namespaces=self.styles.namespaces)
             self._replace_style_by_attrib(new_page_layout, orig_page_layout, 'name', self.styles.namespaces['style'])
             ###########################
             self.styles_xml = str(self.styles)
@@ -1132,7 +1142,7 @@ class OOSerializer:
             curr_node = None
             node_to_update = []
             for node2 in node_list2:
-                if node2.get('{%s}%s' % (namespace,name))==node1.get('{%s}%s' % (namespace,name)):
+                if node2.get('{%s}%s' % (namespace, name)) == node1.get('{%s}%s' % (namespace, name)):
                     curr_node = node2
                     node_to_update.append(node2)
                     break
@@ -1208,12 +1218,12 @@ class OOSerializer:
                     self.check_spaces(content.tree, content.namespaces)
                     outzip.writestr(new_info, str(content))
                 else:
-                    outzip.writestr(new_info, serialized_stream)
+                    outzip.writestr(new_info, serialized_stream.encode('utf-8'))
             elif f_info.filename == MANIFEST:
                 outzip.writestr(f_info, str(self.manifest))
             elif f_info.filename == META:
                 outzip.writestr(f_info, str(self.meta))
-            elif f_info.filename=='Thumbnails/thumbnail.png':
+            elif f_info.filename == 'Thumbnails/thumbnail.png':
                 continue
             else:
                 outzip.writestr(f_info, inzip.read(f_info.filename))
@@ -1221,6 +1231,7 @@ class OOSerializer:
         outzip.close()
 
         return self.new_oo is not None and self.new_oo or StringIO()
+
 
 MIMETemplateLoader.add_factory('oo.org', Template)
 
