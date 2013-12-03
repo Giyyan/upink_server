@@ -937,7 +937,7 @@ class OOSerializer:
                 new_parent_node.tail = parent_tail
                 next_child = new_parent_node
                 try:
-                    while (True):
+                    while True:
                         curr_child = parent_children.next()
                         if curr_child.tag == '{%s}span' % namespaces['text']:
                             new_span_node = EtreeElement('{%s}span' % namespaces['text'],
@@ -1046,7 +1046,7 @@ class OOSerializer:
         tags = tree.xpath('//table:table-cell[@guess_type]', namespaces=namespaces)
         for tag in tags:
             #if len(tag)==0 or len(tag)>1 or tag[0].getchildren():
-            if tag[0].getchildren():
+            if len(tag) != 1 or tag[0].getchildren():
                 guess_type = 'string'
             else:
                 try:
